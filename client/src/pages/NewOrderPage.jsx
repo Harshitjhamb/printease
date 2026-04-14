@@ -7,7 +7,7 @@ import { fetchMeta } from "../lib/meta";
 import { PDFDocument } from "pdf-lib";
 
 function Stepper({ step }) {
-  const steps = ["Document", "Options", "Comment", "Review"];
+  const steps = ["Document", "Options", "Review"];
   return (
     <div className="flex items-center gap-3">
       {steps.map((s, idx) => {
@@ -105,7 +105,7 @@ export default function NewOrderPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [order, setOrder] = useState(null);
-  const [paymentUi, setPaymentUi] = useState({ open: false, paypalOrderId: "", approveUrl: "" });
+  const [paymentUi, setPaymentUi] = useState({ open: false });
   const [printerActive, setPrinterActive] = useState(true);
   const fileInputRef = useRef(null);
   const driveTokenRef = useRef("");
@@ -118,14 +118,23 @@ export default function NewOrderPage() {
 
   const totals = useMemo(() => {
     const lines = docs.map((d) => {
-      const pageStart = Number(d.pageStart || 1);
-      const pageEnd = Number(d.pageEnd || 1);
-      const parsed = parsePrintComment({ comment: d.comment || "", pageStart: Math.min(pageStart, pageEnd), pageEnd: Math.max(pageStart, pageEnd) });
+      const baseStart = Number(d.pageStart || 1);
+      const baseEnd = Number(d.pageEnd || 1);
+      const max = typeof d.pageCount === "number" ? d.pageCount : Math.max(baseStart, baseEnd);
+      const parsed = parsePrintComment({ comment: d.comment || "", pageStart: 1, pageEnd: max });
+      const effectivePrintType = parsed?.defaults?.printType || d.printType || "bw";
+      const effectiveSides = parsed?.defaults?.sides || d.sides || "single";
+      const range = parsed?.range
+        ? {
+            pageStart: Math.min(Math.max(parsed.range.pageStart, 1), max),
+            pageEnd: Math.min(Math.max(parsed.range.pageEnd, 1), max)
+          }
+        : { pageStart: Math.min(baseStart, baseEnd), pageEnd: Math.max(baseStart, baseEnd) };
       const lineAmount = calcLineAmountINR({
-        printType: d.printType || "bw",
-        sides: d.sides || "single",
-        pageStart: Math.min(pageStart, pageEnd),
-        pageEnd: Math.max(pageStart, pageEnd),
+        printType: effectivePrintType,
+        sides: effectiveSides,
+        pageStart: Math.min(range.pageStart, range.pageEnd),
+        pageEnd: Math.max(range.pageStart, range.pageEnd),
         copies: Number(d.copies || 1),
         overrides: parsed.overrides
       });
@@ -326,11 +335,20 @@ export default function NewOrderPage() {
     try {
       const payload = {
         items: docs.map((d) => ({
+          // Range can be auto-derived from comment (if present)
+          ...(function () {
+            const baseStart = Number(d.pageStart || 1);
+            const baseEnd = Number(d.pageEnd || 1);
+            const max = typeof d.pageCount === "number" ? d.pageCount : Math.max(baseStart, baseEnd);
+            const parsed = parsePrintComment({ comment: d.comment || "", pageStart: 1, pageEnd: max });
+            if (!parsed?.range) return { pageStart: baseStart, pageEnd: baseEnd };
+            const ps = Math.min(Math.max(parsed.range.pageStart, 1), max);
+            const pe = Math.min(Math.max(parsed.range.pageEnd, 1), max);
+            return { pageStart: ps, pageEnd: pe };
+          })(),
           fileId: d.fileId,
           printType: d.printType,
           sides: d.sides,
-          pageStart: Number(d.pageStart),
-          pageEnd: Number(d.pageEnd),
           copies: Number(d.copies),
           paperSize: d.paperSize,
           comment: d.comment || ""
@@ -338,7 +356,7 @@ export default function NewOrderPage() {
       };
       const { data } = await api.post("/orders", payload);
       setOrder(data.order);
-      setPaymentUi({ open: true, paypalOrderId: "", approveUrl: "" });
+      setPaymentUi({ open: true });
     } catch (e) {
       setErr(e?.response?.data?.message || "Order failed");
     } finally {
@@ -362,7 +380,7 @@ export default function NewOrderPage() {
         order_id: data.razorpayOrderId,
         handler: async function (response) {
           await api.post("/payments/razorpay/verify", { orderId: order._id, ...response });
-          setPaymentUi({ open: false, paypalOrderId: "", approveUrl: "" });
+          setPaymentUi({ open: false });
           alert("Payment successful!");
         }
       };
@@ -371,36 +389,6 @@ export default function NewOrderPage() {
       rzp.open();
     } catch (e) {
       setErr(e?.response?.data?.message || "Razorpay payment setup failed (check keys)");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function payWithPayPal() {
-    if (!order) return;
-    setErr("");
-    setBusy(true);
-    try {
-      const { data } = await api.post("/payments/paypal/create-order", { orderId: order._id });
-      setPaymentUi({ open: true, paypalOrderId: data.paypalOrderId, approveUrl: data.approveUrl });
-      if (data.approveUrl) window.open(data.approveUrl, "_blank", "noopener,noreferrer");
-    } catch (e) {
-      setErr(e?.response?.data?.message || "PayPal payment setup failed (check keys)");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function capturePayPal() {
-    if (!order || !paymentUi.paypalOrderId) return;
-    setErr("");
-    setBusy(true);
-    try {
-      await api.post("/payments/paypal/capture", { orderId: order._id, paypalOrderId: paymentUi.paypalOrderId });
-      setPaymentUi({ open: false, paypalOrderId: "", approveUrl: "" });
-      alert("Payment captured!");
-    } catch (e) {
-      setErr(e?.response?.data?.message || "PayPal capture failed");
     } finally {
       setBusy(false);
     }
@@ -603,6 +591,33 @@ export default function NewOrderPage() {
                   <div className="mt-3 text-xs text-slate-500">
                     Binding/Staple/Bundling: <span className="font-semibold">not available</span>
                   </div>
+
+                  <div className="mt-4">
+                    <div className="text-sm font-semibold text-slate-700">Comments (optional)</div>
+                    <textarea
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white p-3 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+                      rows={4}
+                      placeholder="Set any particular request like if you want to specify certain pages or print options. Examples: if in between pages 1-10 you want page 2,4,6 colored kinldy mention (Rest are default selected option )"
+                      value={d.comment}
+                      onChange={(e) =>
+                        setDocs((prev) =>
+                          prev.map((x) => {
+                            if (x.localId !== d.localId) return x;
+                            const nextComment = e.target.value;
+                            const max = typeof x.pageCount === "number" ? x.pageCount : 999999;
+                            const parsed = parsePrintComment({ comment: nextComment || "", pageStart: 1, pageEnd: max });
+                            if (!parsed?.range) return { ...x, comment: nextComment };
+                            const ps = Math.min(Math.max(parsed.range.pageStart, 1), max);
+                            const pe = Math.min(Math.max(parsed.range.pageEnd, 1), max);
+                            return { ...x, comment: nextComment, pageStart: ps, pageEnd: pe };
+                          })
+                        )
+                      }
+                    />
+                    {/* <div className="mt-2 text-xs text-slate-500">
+                      Tip: write “pages 1-10” for auto range, and “color=2,4,8” for specific color pages.
+                    </div> */}
+                  </div>
                 </div>
               ))}
             </div>
@@ -618,48 +633,20 @@ export default function NewOrderPage() {
 
         {step === 3 ? (
           <div>
-            <h2 className="text-xl font-extrabold">Special Instructions</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Add any special instructions for the print shop. Our system will automatically analyze your request.
-            </p>
-
-            <div className="mt-5 space-y-5">
-              {docs.map((d, idx) => (
-                <div key={d.localId} className="rounded-2xl border border-slate-100 p-4">
-                  <div className="font-semibold truncate">Document {idx + 1}: {d.fileName}</div>
-                  <div className="mt-3 text-sm font-semibold text-slate-700">Comments (optional)</div>
-                  <textarea
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white p-3 text-sm outline-none focus:ring-2 focus:ring-sky-200"
-                    rows={4}
-                    placeholder="E.g. Pages 2 and 6 colored. Urgent — needed by tomorrow morning."
-                    value={d.comment}
-                    onChange={(e) => setDocs((prev) => prev.map((x) => (x.localId === d.localId ? { ...x, comment: e.target.value } : x)))}
-                  />
-                  <div className="mt-2 text-xs text-slate-500">
-                    Tip: You can write: “pages 2,6 colored” or “colored pages 2-4”.
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-6 flex items-center justify-between">
-              <Button variant="ghost" onClick={() => setStep(2)}>
-                ← Back
-              </Button>
-              <Button onClick={() => setStep(4)}>Continue →</Button>
-            </div>
-          </div>
-        ) : null}
-
-        {step === 4 ? (
-          <div>
             <h2 className="text-xl font-extrabold">Order Summary</h2>
             <div className="mt-4 space-y-4">
               {docs.map((d, idx) => {
                 const line = totals.lines.find((l) => l.id === d.localId);
-                const pageStart = Math.min(Number(d.pageStart), Number(d.pageEnd));
-                const pageEnd = Math.max(Number(d.pageStart), Number(d.pageEnd));
-                const billedUnits = calcBillingUnits({ pageStart, pageEnd, sides: d.sides });
+                const baseStart = Math.min(Number(d.pageStart), Number(d.pageEnd));
+                const baseEnd = Math.max(Number(d.pageStart), Number(d.pageEnd));
+                const max = typeof d.pageCount === "number" ? d.pageCount : baseEnd;
+                const parsed = parsePrintComment({ comment: d.comment || "", pageStart: 1, pageEnd: max });
+                const effectivePrintType = parsed?.defaults?.printType || d.printType;
+                const effectiveSides = parsed?.defaults?.sides || d.sides;
+                const pageStart = parsed?.range ? Math.min(Math.max(parsed.range.pageStart, 1), max) : baseStart;
+                const pageEnd = parsed?.range ? Math.min(Math.max(parsed.range.pageEnd, 1), max) : baseEnd;
+                const billedUnits = calcBillingUnits({ pageStart, pageEnd, sides: effectiveSides, overrides: parsed.overrides });
+                const hasMixedSides = (parsed?.overrides || []).some((o) => o.sides && o.sides !== effectiveSides);
                 return (
                   <div key={d.localId} className="rounded-2xl bg-slate-50 p-4">
                     <div className="flex items-start justify-between gap-3">
@@ -675,15 +662,17 @@ export default function NewOrderPage() {
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
                       <div className="text-slate-500">Print Type</div>
-                      <div className="text-right font-semibold">{d.printType === "bw" ? "Black & White" : "Color"}</div>
+                      <div className="text-right font-semibold">{effectivePrintType === "bw" ? "Black & White" : "Color"}</div>
 
                       <div className="text-slate-500">Sides</div>
-                      <div className="text-right font-semibold">{d.sides === "single" ? "Single-sided" : "Double-sided"}</div>
+                      <div className="text-right font-semibold">
+                        {hasMixedSides ? "Mixed (see instructions)" : effectiveSides === "single" ? "Single-sided" : "Double-sided"}
+                      </div>
 
                       <div className="text-slate-500">Pages</div>
                       <div className="text-right font-semibold">
                         {pageStart}–{pageEnd} ({pageEnd - pageStart + 1} pages){" "}
-                        {d.sides === "double" ? (
+                        {billedUnits ? (
                           <span className="text-slate-500">• billed as {billedUnits} sheets</span>
                         ) : null}
                       </div>
@@ -708,7 +697,7 @@ export default function NewOrderPage() {
             </div>
 
             <div className="mt-6 flex items-center justify-between">
-              <Button variant="ghost" onClick={() => setStep(3)}>
+              <Button variant="ghost" onClick={() => setStep(2)}>
                 ← Back
               </Button>
               <Button onClick={placeOrder} disabled={busy}>
@@ -731,26 +720,12 @@ export default function NewOrderPage() {
               <Button className="w-full" onClick={payWithRazorpay} disabled={busy}>
                 Pay with Razorpay / UPI
               </Button>
-              <Button className="w-full" variant="secondary" onClick={payWithPayPal} disabled={busy}>
-                Pay with PayPal
-              </Button>
-              {paymentUi.paypalOrderId ? (
-                <div className="rounded-xl border border-slate-200 p-3 text-sm">
-                  <div className="font-semibold">PayPal flow</div>
-                  <div className="text-slate-600 mt-1">
-                    Complete the PayPal payment in the opened tab, then come back and click:
-                  </div>
-                  <Button className="mt-3 w-full" onClick={capturePayPal} disabled={busy}>
-                    I completed payment (Capture)
-                  </Button>
-                </div>
-              ) : null}
             </div>
 
             <div className="mt-4 flex justify-end">
               <Button
                 variant="ghost"
-                onClick={() => setPaymentUi({ open: false, paypalOrderId: "", approveUrl: "" })}
+                onClick={() => setPaymentUi({ open: false })}
                 disabled={busy}
               >
                 Close

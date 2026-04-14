@@ -61,6 +61,19 @@ router.get("/:id/view", requireAuth, async (req, res) => {
   const isAdmin = req.user.role === "admin";
   if (!isOwner && !isAdmin) return res.status(403).json({ message: "Forbidden" });
 
+  // If the DB record exists but the underlying disk file is missing (common on ephemeral hosts),
+  // return a JSON 404 so the frontend can show a useful message.
+  try {
+    if (!file.diskPath || !fs.existsSync(file.diskPath)) {
+      return res.status(404).json({
+        message:
+          "File is not available on server storage (it may have been cleared after redeploy). Please re-upload and place the order again."
+      });
+    }
+  } catch {
+    return res.status(404).json({ message: "File is not available on server storage. Please re-upload." });
+  }
+
   res.setHeader("Content-Type", file.mimeType || "application/octet-stream");
   res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(file.originalName)}"`);
   return res.sendFile(path.resolve(file.diskPath));

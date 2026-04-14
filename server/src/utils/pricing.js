@@ -3,51 +3,53 @@ export const PRICING_INR = {
   colorPerPage: 6
 };
 
-function getSheetIndexForPage({ page, pageStart }) {
-  // For duplex printing, treat the selected range as consecutive pages:
-  // sheet1 = (start,start+1), sheet2 = (start+2,start+3), ...
-  return Math.floor((page - pageStart) / 2) + 1;
+function buildOverrideMaps(overrides) {
+  const type = new Map();
+  const sides = new Map();
+  for (const o of overrides || []) {
+    if (o?.type) type.set(o.page, o.type);
+    if (o?.sides) sides.set(o.page, o.sides);
+  }
+  return { type, sides };
 }
 
-export function calcBillingUnits({ pageStart, pageEnd, sides }) {
-  const pageCount = pageEnd - pageStart + 1;
-  if (sides === "double") return Math.ceil(pageCount / 2); // sheets
-  return pageCount; // pages
+function simulateSheets({ pageStart, pageEnd, baseType, baseSides, overrides = [] }) {
+  const { type: typeMap, sides: sidesMap } = buildOverrideMaps(overrides);
+  const getType = (p) => typeMap.get(p) || baseType;
+  const getSides = (p) => sidesMap.get(p) || baseSides;
+
+  const sheets = [];
+  let p = pageStart;
+  while (p <= pageEnd) {
+    const s = getSides(p);
+    if (s === "single") {
+      sheets.push({ pages: [p], type: getType(p) });
+      p += 1;
+      continue;
+    }
+
+    const next = p + 1;
+    if (next <= pageEnd && getSides(next) === "double") {
+      const t1 = getType(p);
+      const t2 = getType(next);
+      sheets.push({ pages: [p, next], type: t1 === "color" || t2 === "color" ? "color" : "bw" });
+      p += 2;
+    } else {
+      sheets.push({ pages: [p], type: getType(p) });
+      p += 1;
+    }
+  }
+  return sheets;
+}
+
+export function calcBillingUnits({ pageStart, pageEnd, sides = "single", overrides = [] }) {
+  return simulateSheets({ pageStart, pageEnd, baseType: "bw", baseSides: sides, overrides }).length;
 }
 
 export function calcLineAmountINR({ printType, sides = "single", pageStart, pageEnd, copies, overrides = [] }) {
-  const pageCount = pageEnd - pageStart + 1;
-  const overrideMap = new Map(overrides.map((o) => [o.page, o.type]));
-
-  if (sides === "double") {
-    // Bill per sheet. If ANY side/page on a sheet is color, treat the sheet as color.
-    const sheetCount = Math.ceil(pageCount / 2);
-    const sheetType = new Map();
-    for (let i = 1; i <= sheetCount; i++) sheetType.set(i, printType);
-
-    for (let p = pageStart; p <= pageEnd; p++) {
-      const t = overrideMap.get(p);
-      if (!t) continue;
-      if (t === "color") {
-        const sheetIdx = getSheetIndexForPage({ page: p, pageStart });
-        sheetType.set(sheetIdx, "color");
-      }
-      // "bw" overrides do not downgrade a color sheet automatically (common print-shop logic)
-    }
-
-    let perCopyAmount = 0;
-    for (let i = 1; i <= sheetCount; i++) {
-      perCopyAmount += sheetType.get(i) === "color" ? PRICING_INR.colorPerPage : PRICING_INR.bwPerPage;
-    }
-    return perCopyAmount * copies;
-  }
-
-  // Single-sided: bill per page
+  const sheets = simulateSheets({ pageStart, pageEnd, baseType: printType, baseSides: sides, overrides });
   let perCopyAmount = 0;
-  for (let p = pageStart; p <= pageEnd; p++) {
-    const t = overrideMap.get(p) || printType;
-    perCopyAmount += t === "color" ? PRICING_INR.colorPerPage : PRICING_INR.bwPerPage;
-  }
+  for (const sh of sheets) perCopyAmount += sh.type === "color" ? PRICING_INR.colorPerPage : PRICING_INR.bwPerPage;
   return perCopyAmount * copies;
 }
 

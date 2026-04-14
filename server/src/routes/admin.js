@@ -99,6 +99,18 @@ router.patch("/orders/:id", requireAuth, requireAdmin, async (req, res) => {
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ message: "Invalid input" });
 
+  const existing = await Order.findById(req.params.id);
+  if (!existing) return res.status(404).json({ message: "Order not found" });
+
+  // If payment is already marked as PAID, do not allow changing it back (safety).
+  if (
+    typeof parsed.data.paymentStatus === "string" &&
+    existing.paymentStatus === "paid" &&
+    parsed.data.paymentStatus !== "paid"
+  ) {
+    return res.status(400).json({ message: "Payment status is locked after it is marked as PAID." });
+  }
+
   const order = await Order.findByIdAndUpdate(req.params.id, parsed.data, { new: true });
   if (!order) return res.status(404).json({ message: "Order not found" });
   return res.json({ order });

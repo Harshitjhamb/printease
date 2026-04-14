@@ -16,10 +16,19 @@ const OrderItemSchema = new mongoose.Schema(
     comment: { type: String, default: "" },
     parsedComment: {
       raw: { type: String, default: "" },
+      defaults: {
+        printType: { type: String, enum: ["bw", "color"] },
+        sides: { type: String, enum: ["single", "double"] }
+      },
+      range: {
+        pageStart: { type: Number, min: 1 },
+        pageEnd: { type: Number, min: 1 }
+      },
       overrides: [
         {
           page: { type: Number, required: true },
-          type: { type: String, enum: ["bw", "color"], required: true }
+          type: { type: String, enum: ["bw", "color"] },
+          sides: { type: String, enum: ["single", "double"] }
         }
       ],
       notes: { type: String, default: "" }

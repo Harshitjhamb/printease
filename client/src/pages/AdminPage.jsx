@@ -332,11 +332,18 @@ export default function AdminPage() {
             </div>
             <div>
               <div className="text-xs font-semibold text-slate-600">Payment Status</div>
-              <Select value={o.paymentStatus} onChange={(e) => updateOrder(o._id, { paymentStatus: e.target.value })}>
+              <Select
+                value={o.paymentStatus}
+                disabled={o.paymentStatus === "paid"}
+                onChange={(e) => updateOrder(o._id, { paymentStatus: e.target.value })}
+              >
                 <option value="pending">Pending</option>
                 <option value="paid">Paid</option>
                 <option value="failed">Failed</option>
               </Select>
+              {o.paymentStatus === "paid" ? (
+                <div className="mt-1 text-[11px] text-slate-500">Locked after paid.</div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -372,8 +379,11 @@ export default function AdminPage() {
                     <div className="font-bold text-slate-800">Detected Special Pages</div>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {it.parsedComment.overrides.map((o2) => (
-                        <Chip key={`${o2.page}_${o2.type}`} tone={o2.type === "color" ? "blue" : "slate"}>
-                          p{o2.page}: {o2.type}
+                        <Chip
+                          key={`${o2.page}_${o2.type || "na"}_${o2.sides || "na"}`}
+                          tone={o2.type === "color" ? "blue" : o2.sides ? "yellow" : "slate"}
+                        >
+                          p{o2.page}:{o2.type ? ` ${o2.type}` : ""}{o2.sides ? `${o2.type ? "," : ""} ${o2.sides}` : ""}
                         </Chip>
                       ))}
                     </div>
@@ -552,9 +562,9 @@ export default function AdminPage() {
                             size="sm"
                             type="button"
                             onClick={() => verifyPayment(p.orderId)}
-                            disabled={busy || verifyBusy === String(p.orderId)}
+                            disabled={busy || verifyBusy === String(p.orderId) || !p.provider || p.provider === "none"}
                           >
-                            {verifyBusy === String(p.orderId) ? "Verifying..." : "Verify"}
+                            {p.provider && p.provider !== "none" ? (verifyBusy === String(p.orderId) ? "Verifying..." : "Verify") : "N/A"}
                           </Button>
                         </td>
                         <td className="py-2 text-right font-extrabold">₹{Number(p.amount || 0).toFixed(2)}</td>

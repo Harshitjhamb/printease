@@ -53,29 +53,52 @@ router.post("/", requireAuth, async (req, res) => {
   }
 
   const items = parsed.data.items.map((it) => {
-    const pageStart = Math.min(it.pageStart, it.pageEnd);
-    const pageEnd = Math.max(it.pageStart, it.pageEnd);
-    const pageCountSelected = calcBillingUnits({ pageStart, pageEnd, sides: it.sides });
+    const basePageStart = Math.min(it.pageStart, it.pageEnd);
+    const basePageEnd = Math.max(it.pageStart, it.pageEnd);
 
-    const parsedComment = parsePrintComment({ comment: it.comment, pageStart, pageEnd });
+    const f = fileMap.get(String(it.fileId));
+    const maxPages = f?.pageCount || basePageEnd;
+
+    // First pass: parse using full available range so we can detect range instructions
+    const parsedWide = parsePrintComment({ comment: it.comment, pageStart: 1, pageEnd: maxPages });
+    const range = parsedWide.range
+      ? {
+          pageStart: Math.min(Math.max(parsedWide.range.pageStart, 1), maxPages),
+          pageEnd: Math.min(Math.max(parsedWide.range.pageEnd, 1), maxPages)
+        }
+      : { pageStart: basePageStart, pageEnd: basePageEnd };
+
+    // Second pass: re-parse within the effective range so overrides are filtered correctly
+    const parsedComment = parsePrintComment({ comment: it.comment, pageStart: range.pageStart, pageEnd: range.pageEnd });
+    parsedComment.range = range;
+
+    const effectivePrintType = parsedComment.defaults?.printType || it.printType;
+    const effectiveSides = parsedComment.defaults?.sides || it.sides;
+
+    const pageCountSelected = calcBillingUnits({
+      pageStart: range.pageStart,
+      pageEnd: range.pageEnd,
+      sides: effectiveSides,
+      overrides: parsedComment.overrides
+    });
+
     const lineAmount = calcLineAmountINR({
-      printType: it.printType,
-      sides: it.sides,
-      pageStart,
-      pageEnd,
+      printType: effectivePrintType,
+      sides: effectiveSides,
+      pageStart: range.pageStart,
+      pageEnd: range.pageEnd,
       copies: it.copies,
       overrides: parsedComment.overrides
     });
 
-    const f = fileMap.get(String(it.fileId));
     return {
       fileId: it.fileId,
       fileName: f.originalName,
       pageCount: f.pageCount,
-      printType: it.printType,
-      sides: it.sides,
-      pageStart,
-      pageEnd,
+      printType: effectivePrintType,
+      sides: effectiveSides,
+      pageStart: range.pageStart,
+      pageEnd: range.pageEnd,
       copies: it.copies,
       paperSize: it.paperSize,
       comment: it.comment || "",
