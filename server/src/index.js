@@ -8,6 +8,7 @@ import orderRoutes from "./routes/orders.js";
 import adminRoutes from "./routes/admin.js";
 import paymentRoutes from "./routes/payments.js";
 import metaRoutes from "./routes/meta.js";
+import { startRetentionJob } from "./utils/fileRetention.js";
 
 const app = express();
 
@@ -37,6 +38,9 @@ connectDb(mongoUri)
       // eslint-disable-next-line no-console
       console.log(`[server] http://localhost:${port}`);
     });
+
+    // Delete disk files after N days (default: 7) but keep DB metadata.
+    startRetentionJob({ retentionDays: Number(process.env.FILE_RETENTION_DAYS || 7) });
   })
   .catch((err) => {
     // eslint-disable-next-line no-console

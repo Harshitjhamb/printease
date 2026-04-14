@@ -61,6 +61,12 @@ router.get("/:id/view", requireAuth, async (req, res) => {
   const isAdmin = req.user.role === "admin";
   if (!isOwner && !isAdmin) return res.status(403).json({ message: "Forbidden" });
 
+  if (file.deletedAt) {
+    return res.status(404).json({
+      message: "This file has expired and was automatically deleted from server storage (7-day retention)."
+    });
+  }
+
   // If the DB record exists but the underlying disk file is missing (common on ephemeral hosts),
   // return a JSON 404 so the frontend can show a useful message.
   try {

@@ -7,11 +7,12 @@ const StoredFileSchema = new mongoose.Schema(
     mimeType: { type: String, required: true },
     sizeBytes: { type: Number, required: true },
     storage: { type: String, enum: ["disk"], default: "disk" },
-    diskPath: { type: String, required: true },
+    // diskPath can be cleared after retention cleanup (we keep metadata, but delete the actual file)
+    diskPath: { type: String, default: "" },
+    deletedAt: { type: Date },
     pageCount: { type: Number } // optional (client-provided for PDFs/images)
   },
   { timestamps: true }
 );
 
 export const StoredFile = mongoose.model("StoredFile", StoredFileSchema);
-
