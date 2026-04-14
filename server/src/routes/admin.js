@@ -118,59 +118,66 @@ router.patch("/orders/:id", requireAuth, requireAdmin, async (req, res) => {
 
 // Verify payment status by asking the provider directly (admin-only).
 router.get("/orders/:id/verify-payment", requireAuth, requireAdmin, async (req, res) => {
-  const order = await Order.findById(req.params.id);
-  if (!order) return res.status(404).json({ message: "Order not found" });
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: "Order not found" });
 
-  const provider = order.paymentProvider || "none";
-  const expectedAmountINR = Number(order.totalAmount || 0);
+    const provider = order.paymentProvider || "none";
+    const expectedAmountINR = Number(order.totalAmount || 0);
 
-  if (provider === "razorpay") {
-    const client = getRazorpayClient();
-    if (!client) return res.status(500).json({ message: "Razorpay keys not configured" });
+    if (provider === "razorpay") {
+      const client = getRazorpayClient();
+      if (!client) return res.status(500).json({ message: "Razorpay keys not configured" });
 
-    const paymentId = order.paymentDetails?.razorpayPaymentId || order.paymentRef;
-    if (!paymentId) return res.status(400).json({ message: "Missing Razorpay payment id for this order" });
+      const paymentId = order.paymentDetails?.razorpayPaymentId || order.paymentRef;
+      if (!paymentId) return res.status(400).json({ message: "Missing Razorpay payment id for this order" });
 
-    const payment = await client.payments.fetch(paymentId);
-    const amountINR = Number(payment.amount || 0) / 100;
-    const isPaid = payment.status === "captured";
+      const payment = await client.payments.fetch(paymentId);
+      const amountINR = Number(payment.amount || 0) / 100;
+      const isPaid = payment.status === "captured";
 
-    return res.json({
-      provider: "razorpay",
-      db: { paymentStatus: order.paymentStatus, paymentRef: order.paymentRef, paidAt: order.paidAt },
-      providerStatus: payment.status,
-      providerIds: { razorpayPaymentId: paymentId, razorpayOrderId: payment.order_id },
-      amount: { expectedINR: expectedAmountINR, providerINR: amountINR, matches: Math.abs(amountINR - expectedAmountINR) < 0.01 },
-      isPaid
+      return res.json({
+        provider: "razorpay",
+        db: { paymentStatus: order.paymentStatus, paymentRef: order.paymentRef, paidAt: order.paidAt },
+        providerStatus: payment.status,
+        providerIds: { razorpayPaymentId: paymentId, razorpayOrderId: payment.order_id },
+        amount: { expectedINR: expectedAmountINR, providerINR: amountINR, matches: Math.abs(amountINR - expectedAmountINR) < 0.01 },
+        isPaid
+      });
+    }
+
+    if (provider === "paypal") {
+      const client = getPayPalClient();
+      if (!client) return res.status(500).json({ message: "PayPal keys not configured" });
+
+      const paypalOrderId = order.paymentDetails?.paypalOrderId || order.paymentRef;
+      if (!paypalOrderId) return res.status(400).json({ message: "Missing PayPal order id for this order" });
+
+      const request = new paypal.orders.OrdersGetRequest(paypalOrderId);
+      const response = await client.execute(request);
+      const status = response.result?.status || "UNKNOWN";
+      const isPaid = status === "COMPLETED";
+
+      const pu = response.result?.purchase_units?.[0];
+      const providerINR = Number(pu?.amount?.value || 0);
+
+      return res.json({
+        provider: "paypal",
+        db: { paymentStatus: order.paymentStatus, paymentRef: order.paymentRef, paidAt: order.paidAt },
+        providerStatus: status,
+        providerIds: { paypalOrderId },
+        amount: { expectedINR: expectedAmountINR, providerINR, matches: Math.abs(providerINR - expectedAmountINR) < 0.01 },
+        isPaid
+      });
+    }
+
+    return res.status(400).json({ message: "Order has no payment provider / not paid yet" });
+  } catch (e) {
+    // Avoid crashing the process (Render will show 502 with no CORS headers if it crashes)
+    return res.status(500).json({
+      message: "Payment verification failed on server (check provider keys / order ids)."
     });
   }
-
-  if (provider === "paypal") {
-    const client = getPayPalClient();
-    if (!client) return res.status(500).json({ message: "PayPal keys not configured" });
-
-    const paypalOrderId = order.paymentDetails?.paypalOrderId || order.paymentRef;
-    if (!paypalOrderId) return res.status(400).json({ message: "Missing PayPal order id for this order" });
-
-    const request = new paypal.orders.OrdersGetRequest(paypalOrderId);
-    const response = await client.execute(request);
-    const status = response.result?.status || "UNKNOWN";
-    const isPaid = status === "COMPLETED";
-
-    const pu = response.result?.purchase_units?.[0];
-    const providerINR = Number(pu?.amount?.value || 0);
-
-    return res.json({
-      provider: "paypal",
-      db: { paymentStatus: order.paymentStatus, paymentRef: order.paymentRef, paidAt: order.paidAt },
-      providerStatus: status,
-      providerIds: { paypalOrderId },
-      amount: { expectedINR: expectedAmountINR, providerINR, matches: Math.abs(providerINR - expectedAmountINR) < 0.01 },
-      isPaid
-    });
-  }
-
-  return res.status(400).json({ message: "Order has no payment provider / not paid yet" });
 });
 
 router.post("/orders/:id/notify", requireAuth, requireAdmin, async (req, res) => {
