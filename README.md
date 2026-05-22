@@ -1,299 +1,235 @@
-<div align="center">
+# PrintEase — Online Xerox
 
-# 🖨️ PrintEase — Online Xerox
+PrintEase is a full-stack web application that modernizes the document printing experience. Users upload their files online, configure print preferences, and collect their printouts from a local print center — eliminating the need to physically carry storage devices or wait in queues.
 
-### *Skip the queue. Print from anywhere.*
-
-**PrintEase** is a modern, full-stack web application that reimagines the traditional xerox experience. Upload your documents from any device, set your print preferences, and walk straight to the counter — no more waiting in long queues or carrying USB drives.
-
-<br/>
-
-[![Live Demo](https://img.shields.io/badge/🌐%20Live%20Demo-printease--client.vercel.app-brightgreen?style=for-the-badge)](https://printease-client.vercel.app)
-[![GitHub Repo](https://img.shields.io/badge/GitHub-Harshitjhamb%2Fprintease-181717?style=for-the-badge&logo=github)](https://github.com/Harshitjhamb/printease)
-
-</div>
+**Live Application:** https://printease-client.vercel.app
 
 ---
 
-## 📌 Table of Contents
+## Table of Contents
 
-- [About the Project](#-about-the-project)
-- [Why PrintEase?](#-why-printease)
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
-- [Getting Started](#-getting-started)
+- [About the Project](#about-the-project)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Running the Application](#running-the-application)
-- [Available Scripts](#-available-scripts)
-- [Environment Variables](#-environment-variables)
-- [Deployment](#-deployment)
-- [Contributing](#-contributing)
-- [License](#-license)
-- [Contact](#-contact)
+- [Available Scripts](#available-scripts)
+- [Environment Variables](#environment-variables)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
 
 ---
 
-## 🧩 About the Project
+## About the Project
 
-**PrintEase** is built to solve a common, everyday problem — the inefficiency of traditional print shops. Whether you're a student rushing to submit an assignment, a professional needing last-minute printouts, or anyone who's ever stood in an annoying queue at a xerox center, PrintEase is for you.
+PrintEase addresses the inefficiency of conventional print centers by enabling users to submit print jobs remotely. Rather than visiting a shop with a USB drive, users upload documents from any browser-enabled device, specify their requirements, and collect the finished printout at their convenience.
 
-The application allows users to:
-- Upload documents from any browser-enabled device
-- Choose their print preferences (pages, copies, color/B&W, etc.)
-- Submit the order online and simply collect the printout
-
-Under the hood, PrintEase is a **JavaScript monorepo** powered by **npm workspaces**, with two isolated packages — a React frontend (`client`) and a Node.js backend (`server`) — running seamlessly together in development via `concurrently`.
+The application is structured as a **JavaScript monorepo** using npm workspaces, with two isolated packages — a React-based frontend (`client`) and a Node.js backend (`server`) — coordinated from a single root configuration.
 
 ---
 
-## 💡 Why PrintEase?
+## Features
 
-| Traditional Xerox Center | PrintEase |
-|--------------------------|-----------|
-| 🕐 Wait in long queues | ✅ Upload in seconds, skip the queue |
-| 💾 Carry a USB drive or phone | ✅ Upload from any device, anywhere |
-| 🤷 Explain settings verbally | ✅ Configure preferences in the app |
-| 😤 Rush during peak hours | ✅ Order ahead at your own pace |
-
----
-
-## ✨ Features
-
-- 📤 **Online Document Upload** — Upload files directly from your browser without needing physical media
-- ⚙️ **Print Preferences** — Configure number of copies, page range, orientation, and color settings before submitting
-- 🏪 **Print Center Integration** — Orders go straight to the print center, ready for pickup
-- 🔄 **Full-Stack Architecture** — Decoupled React frontend and Node.js backend for scalability
-- 📦 **Monorepo Setup** — Single repository with npm workspaces managing client and server
-- ⚡ **Concurrent Dev Server** — One command launches both client and server simultaneously
-- ☁️ **Cloud Deployed** — Client live on Vercel with a production-ready backend
+- Online document upload from any browser-enabled device
+- Configurable print preferences including copies, page range, orientation, and color mode
+- Direct order submission to the print center for immediate processing
+- Decoupled client-server architecture for independent scalability
+- Single-command development environment launching both services concurrently
+- Frontend deployed to Vercel with a dedicated backend service
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-| Layer        | Technology                          | Purpose                            |
-|--------------|-------------------------------------|------------------------------------|
-| **Frontend** | React.js                            | UI / client-side rendering         |
-| **Backend**  | Node.js + Express                   | REST API / business logic          |
-| **Tooling**  | npm Workspaces                      | Monorepo dependency management     |
-| **Dev Tool** | Concurrently                        | Run client & server in parallel    |
-| **Hosting**  | Vercel                              | Frontend deployment                |
-| **Language** | JavaScript (99.5%)                  | Entire codebase                    |
+| Layer | Technology | Role |
+|-------|-----------|------|
+| Frontend | React.js (JavaScript) | User interface and client-side logic |
+| Backend | Node.js | REST API and server-side business logic |
+| Package Management | npm Workspaces | Monorepo dependency management |
+| Dev Tooling | Concurrently | Parallel execution of client and server |
+| Hosting | Vercel | Frontend deployment |
+
+Language composition: JavaScript 99.5%, Other 0.5%
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 printease/
+├── client/                  # React frontend application
+│   ├── public/              # Static assets
+│   ├── src/                 # Components, pages, and application logic
+│   └── package.json         # Client-specific dependencies and scripts
 │
-├── client/                  # ⚛️  React frontend application
-│   ├── public/              #     Static assets
-│   ├── src/                 #     Source code (components, pages, hooks)
-│   └── package.json         #     Client-specific dependencies
+├── server/                  # Node.js backend API
+│   ├── routes/              # API route definitions
+│   ├── controllers/         # Request handlers and business logic
+│   └── package.json         # Server-specific dependencies and scripts
 │
-├── server/                  # 🟢  Node.js backend API
-│   ├── routes/              #     API route definitions
-│   ├── controllers/         #     Request handlers / business logic
-│   └── package.json         #     Server-specific dependencies
-│
-├── .gitignore               # Git ignored files
-├── package.json             # Root monorepo config (workspaces + scripts)
-└── package-lock.json        # Lockfile
+├── .gitignore
+├── package.json             # Root monorepo configuration (workspaces, shared scripts)
+└── package-lock.json
 ```
 
-> The root `package.json` defines both `client` and `server` as workspaces, allowing shared tooling and a single install command.
+The root `package.json` declares both `client` and `server` as workspaces, enabling shared tooling and unified install commands from the project root.
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
-Follow these steps to run PrintEase locally on your machine.
+The following instructions will set up PrintEase locally for development and testing.
 
 ### Prerequisites
 
-Ensure the following are installed before proceeding:
+- **Node.js** v16 or higher — [nodejs.org](https://nodejs.org/)
+- **npm** v7 or higher (npm Workspace support requires v7+; ships with Node.js 16+)
 
-- **Node.js** v16 or higher → [Download](https://nodejs.org/)
-- **npm** v7 or higher (required for workspace support — ships with Node.js 16+)
+Verify installed versions before proceeding:
 
-Verify your versions:
 ```bash
-node -v   # Should be >= 16.x
-npm -v    # Should be >= 7.x
+node -v
+npm -v
 ```
 
 ### Installation
 
-**1. Clone the repository:**
+1. Clone the repository:
 
-```bash
-git clone https://github.com/Harshitjhamb/printease.git
-cd printease
-```
+   ```bash
+   git clone https://github.com/Harshitjhamb/printease.git
+   cd printease
+   ```
 
-**2. Install all dependencies** (root + client + server in one command):
+2. Install all dependencies for the root, client, and server workspaces:
 
-```bash
-npm run install:all
-```
-
-This runs `npm install` at the root and also installs dependencies for both the `server` and `client` workspaces automatically.
+   ```bash
+   npm run install:all
+   ```
 
 ### Running the Application
 
-Start both the frontend and backend simultaneously in development mode:
+Start both the frontend and backend in development mode with a single command:
 
 ```bash
 npm run dev
 ```
 
-This uses [`concurrently`](https://www.npmjs.com/package/concurrently) to launch both processes in parallel:
+This uses [concurrently](https://www.npmjs.com/package/concurrently) to launch both processes in parallel within the same terminal session. Output from each process is prefixed and color-coded by workspace name (`server`, `client`) for readability.
 
-| Process | Label | Color | Default URL |
-|---------|-------|-------|-------------|
-| Backend | `server` | 🟢 Green | `http://localhost:5000` |
-| Frontend | `client` | 🔵 Blue | `http://localhost:3000` |
-
-Both processes stream their logs in the same terminal window with color-coded labels.
+| Process | Default URL |
+|---------|-------------|
+| Backend (server) | http://localhost:5000 |
+| Frontend (client) | http://localhost:3000 |
 
 ---
 
-## 📜 Available Scripts
+## Available Scripts
 
-### Root-level scripts (run from project root)
+**Root-level** (run from the project root):
 
-| Script | Command | Description |
-|--------|---------|-------------|
-| Start Dev | `npm run dev` | Launches both client and server concurrently |
-| Install All | `npm run install:all` | Installs dependencies for root, client, and server |
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Starts both client and server concurrently in development mode |
+| `npm run install:all` | Installs dependencies for the root, client, and server workspaces |
 
-### Workspace-specific scripts
-
-You can target individual workspaces using the `-w` flag:
+**Workspace-specific** (target a single package using the `-w` flag):
 
 ```bash
-npm run dev -w server    # Start backend only
-npm run dev -w client    # Start frontend only
+npm run dev -w server    # Start the backend only
+npm run dev -w client    # Start the frontend only
 ```
 
 ---
 
-## 🔐 Environment Variables
+## Environment Variables
 
-Each workspace requires its own environment configuration. Create the following `.env` files before running the app:
+Each workspace requires its own environment file. Create the following before running the application:
 
 **`server/.env`**
 ```env
 PORT=5000
 NODE_ENV=development
-
-# Database
 DATABASE_URL=your_database_connection_string
-
-# Auth (if applicable)
 JWT_SECRET=your_jwt_secret_key
 ```
 
 **`client/.env`**
 ```env
 REACT_APP_API_URL=http://localhost:5000
-REACT_APP_ENV=development
 ```
 
-> ⚠️ **Important:** Never commit `.env` files to version control. The `.gitignore` already excludes them. Always use `.env.example` files to document available variables for other developers.
+Environment files must never be committed to version control. The repository `.gitignore` already excludes `.env` files. It is recommended to maintain a `.env.example` file in each workspace to document available variables for other contributors.
 
 ---
 
-## ☁️ Deployment
+## Deployment
 
-### Client (Vercel)
+### Frontend — Vercel
 
-The frontend is live at: **[printease-client.vercel.app](https://printease-client.vercel.app)**
+The production frontend is live at: https://printease-client.vercel.app
 
-To deploy your own instance on Vercel:
+To deploy a new instance:
 
-1. Push your code to GitHub
-2. Go to [vercel.com](https://vercel.com) and import your repository
-3. Set the **Root Directory** to `client`
-4. Add all required environment variables from `client/.env` in the Vercel dashboard
-5. Click **Deploy** — Vercel will build and serve your React app automatically
+1. Import the repository into [Vercel](https://vercel.com).
+2. Set the **Root Directory** to `client`.
+3. Add the required environment variables from `client/.env` in the Vercel project settings.
+4. Deploy. Vercel will handle the build and serve the React application automatically.
 
-### Server (Node.js Hosting)
+### Backend — Node.js Hosting
 
-The backend can be deployed to any Node.js-compatible platform:
+The server can be deployed to any Node.js-compatible platform. Recommended options:
 
 | Platform | Notes |
 |----------|-------|
-| [Railway](https://railway.app) | Free tier available, easy GitHub integration |
-| [Render](https://render.com) | Free tier available, auto-deploys from GitHub |
-| [Heroku](https://heroku.com) | Paid, robust and battle-tested |
-| [Fly.io](https://fly.io) | Docker-based, generous free tier |
+| [Railway](https://railway.app) | GitHub integration, free tier available |
+| [Render](https://render.com) | Auto-deploy from GitHub, free tier available |
+| [Fly.io](https://fly.io) | Docker-based deployment, generous free tier |
+| [Heroku](https://heroku.com) | Established platform, paid plans |
 
-After deploying the server, update `REACT_APP_API_URL` in your Vercel environment variables to point to your production server URL.
+After deploying the backend, update the `REACT_APP_API_URL` environment variable in Vercel to point to the production server URL.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-Contributions, issues, and feature requests are welcome and appreciated!
+Contributions, bug reports, and feature requests are welcome. To contribute code:
 
-**To contribute:**
-
-1. **Fork** the repository
-2. **Create** a new feature branch:
+1. Fork the repository.
+2. Create a feature branch:
    ```bash
    git checkout -b feature/your-feature-name
    ```
-3. **Make** your changes with clear, descriptive commits:
+3. Commit your changes using descriptive messages:
    ```bash
    git commit -m "feat: add online payment support"
    ```
-4. **Push** to your fork:
+4. Push to your fork:
    ```bash
    git push origin feature/your-feature-name
    ```
-5. **Open a Pull Request** on GitHub and describe what you've changed
+5. Open a Pull Request against the `main` branch.
 
-### Commit Convention
-
-This project follows [Conventional Commits](https://www.conventionalcommits.org/):
-
-| Prefix | Use for |
-|--------|---------|
-| `feat:` | New features |
-| `fix:` | Bug fixes |
-| `docs:` | Documentation changes |
-| `refactor:` | Code refactoring |
-| `chore:` | Tooling, config, or build changes |
+This project follows the [Conventional Commits](https://www.conventionalcommits.org/) specification. Please use the appropriate prefix (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`) in commit messages.
 
 ---
 
-## 📄 License
+## License
 
-This project is marked as **private** (as defined in the root `package.json`). All rights reserved by [Harshitjhamb](https://github.com/Harshitjhamb).
+This project is private, as defined in the root `package.json`. All rights reserved by [Harshitjhamb](https://github.com/Harshitjhamb).
 
 ---
 
-## 📬 Contact
-
-Have questions, suggestions, or just want to say hi? Feel free to reach out!
+## Contact
 
 **Harshit Jhamb**
 
-[![Email](https://img.shields.io/badge/Email-harshtihjamb03%40gmail.com-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:harshtihjamb03@gmail.com)
-[![GitHub](https://img.shields.io/badge/GitHub-Harshitjhamb-181717?style=for-the-badge&logo=github)](https://github.com/Harshitjhamb)
+- Email: harshtihjamb03@gmail.com
+- GitHub: https://github.com/Harshitjhamb
 
-> 💬 For bug reports or feature requests, please [open an issue](https://github.com/Harshitjhamb/printease/issues) on GitHub.
-
----
-
-<div align="center">
-
-Made with ❤️ by [Harshit Jhamb](https://github.com/Harshitjhamb)
-
-⭐ If you found this project helpful, consider giving it a star on GitHub!
-
-</div>
+For bug reports or feature requests, please open an issue at https://github.com/Harshitjhamb/printease/issues.
