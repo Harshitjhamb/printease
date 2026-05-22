@@ -10,7 +10,6 @@
 
 [![Live Demo](https://img.shields.io/badge/🌐%20Live%20Demo-printease--client.vercel.app-brightgreen?style=for-the-badge)](https://printease-client.vercel.app)
 [![GitHub Repo](https://img.shields.io/badge/GitHub-Harshitjhamb%2Fprintease-181717?style=for-the-badge&logo=github)](https://github.com/Harshitjhamb/printease)
-[![JavaScript](https://img.shields.io/badge/JavaScript-99.5%25-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://github.com/Harshitjhamb/printease)
 
 </div>
 
