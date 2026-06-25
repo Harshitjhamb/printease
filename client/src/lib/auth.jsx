@@ -4,7 +4,7 @@ import { api, setAuthToken } from "./api";
 const AuthCtx = createContext(null);
 
 const LS_KEYS = {
-  activeMode: "activeMode", // 'user' | 'admin'
+  activeMode: "activeMode",
   tokenUser: "token_user",
   userUser: "user_user",
   tokenAdmin: "token_admin",
@@ -16,6 +16,18 @@ function readJson(key) {
   return raw ? JSON.parse(raw) : null;
 }
 
+// ✅ FIX: Set token ONCE before any component renders
+// This runs at module load time, not inside a useEffect,
+// so axios has the correct header before AdminPage fires its API calls.
+(function initToken() {
+  const mode = localStorage.getItem(LS_KEYS.activeMode) || "user";
+  const token =
+    mode === "admin"
+      ? localStorage.getItem(LS_KEYS.tokenAdmin) || ""
+      : localStorage.getItem(LS_KEYS.tokenUser) || "";
+  setAuthToken(token);
+})();
+
 export function AuthProvider({ children }) {
   const [activeMode, setActiveMode] = useState(() => localStorage.getItem(LS_KEYS.activeMode) || "user");
   const [tokenUser, setTokenUser] = useState(() => localStorage.getItem(LS_KEYS.tokenUser) || "");
@@ -23,22 +35,11 @@ export function AuthProvider({ children }) {
   const [tokenAdmin, setTokenAdmin] = useState(() => localStorage.getItem(LS_KEYS.tokenAdmin) || "");
   const [userAdmin, setUserAdmin] = useState(() => readJson(LS_KEYS.userAdmin));
 
-  // ✅ FIX: Set axios auth header immediately (synchronously) so it's ready
-  // before AdminPage mounts and fires API calls — avoids the race condition
-  // where useEffect runs too late and the first load gets 401 "Missing token".
-  const _initMode = localStorage.getItem(LS_KEYS.activeMode) || "user";
-  const _initToken =
-    _initMode === "admin"
-      ? localStorage.getItem(LS_KEYS.tokenAdmin) || ""
-      : localStorage.getItem(LS_KEYS.tokenUser) || "";
-  setAuthToken(_initToken);
-
   useEffect(() => {
     localStorage.setItem(LS_KEYS.activeMode, activeMode);
   }, [activeMode]);
 
   useEffect(() => {
-    // Keep axios header in sync whenever mode or tokens change
     const activeToken = activeMode === "admin" ? tokenAdmin : tokenUser;
     setAuthToken(activeToken);
   }, [activeMode, tokenAdmin, tokenUser]);
@@ -68,13 +69,10 @@ export function AuthProvider({ children }) {
 
   const value = useMemo(
     () => ({
-      // active session
       activeMode,
       token: activeToken,
       user: activeUser,
       isAuthed: Boolean(activeToken && activeUser),
-
-      // session availability (for switcher)
       hasUserSession: Boolean(tokenUser && userUser),
       hasAdminSession: Boolean(tokenAdmin && userAdmin),
 
