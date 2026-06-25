@@ -23,12 +23,22 @@ export function AuthProvider({ children }) {
   const [tokenAdmin, setTokenAdmin] = useState(() => localStorage.getItem(LS_KEYS.tokenAdmin) || "");
   const [userAdmin, setUserAdmin] = useState(() => readJson(LS_KEYS.userAdmin));
 
+  // ✅ FIX: Set axios auth header immediately (synchronously) so it's ready
+  // before AdminPage mounts and fires API calls — avoids the race condition
+  // where useEffect runs too late and the first load gets 401 "Missing token".
+  const _initMode = localStorage.getItem(LS_KEYS.activeMode) || "user";
+  const _initToken =
+    _initMode === "admin"
+      ? localStorage.getItem(LS_KEYS.tokenAdmin) || ""
+      : localStorage.getItem(LS_KEYS.tokenUser) || "";
+  setAuthToken(_initToken);
+
   useEffect(() => {
     localStorage.setItem(LS_KEYS.activeMode, activeMode);
   }, [activeMode]);
 
   useEffect(() => {
-    // set axios auth header from active mode
+    // Keep axios header in sync whenever mode or tokens change
     const activeToken = activeMode === "admin" ? tokenAdmin : tokenUser;
     setAuthToken(activeToken);
   }, [activeMode, tokenAdmin, tokenUser]);
