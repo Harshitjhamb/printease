@@ -1,4 +1,4 @@
-# PrintEase — Online Xerox & Print Center Manager
+# PrintEase - Online Xerox & Print Center Manager
 
 PrintEase is a full-stack MERN application that modernizes the campus printing experience. Students upload documents from the browser or directly from **Google Drive**, configure per-document print settings, and pay online — skipping the physical queue entirely. Print center operators get a dedicated admin portal to manage incoming orders, verify payments, and track revenue.
 
