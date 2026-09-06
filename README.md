@@ -1,6 +1,6 @@
 # PrintEase - Online Xerox & Print Center Manager
 
-PrintEase is a full-stack MERN application that modernizes the campus printing experience. Students upload documents from the browser or directly from **Google Drive**, configure per-document print settings, and pay online — skipping the physical queue entirely. Print center operators get a dedicated admin portal to manage incoming orders, verify payments, and track revenue.
+PrintEase is a full-stack MERN application that modernizes the campus printing experience. Students upload documents from the browser or directly from **Google Drive**, configure per-document print settings, and pay online - skipping the physical queue entirely. Print center operators get a dedicated admin portal to manage incoming orders, verify payments, and track revenue.
 
 **Live Application:** https://printease-client.vercel.app
 
@@ -32,7 +32,7 @@ PrintEase is a full-stack MERN application that modernizes the campus printing e
 
 PrintEase removes the friction of conventional print shops by letting students submit print jobs remotely instead of carrying a USB drive and waiting in line. Files are uploaded from any browser-enabled device (including directly from Google Drive), per-document settings such as color mode, sides, copies, and page range are configured, payment is collected online, and the finished printout is collected later from the print center.
 
-The codebase is a **JavaScript monorepo** managed with npm workspaces, with two independent packages — a Vite/React frontend (`client`) and an Express/MongoDB backend (`server`) — coordinated from a single root configuration.
+The codebase is a **JavaScript monorepo** managed with npm workspaces, with two independent packages - a Vite/React frontend (`client`) and an Express/MongoDB backend (`server`) - coordinated from a single root configuration.
 
 ---
 
@@ -108,7 +108,7 @@ The root `package.json` declares `server` and `client` as workspaces, enabling u
 
 ### Prerequisites
 
-- **Node.js** v18 or higher — [nodejs.org](https://nodejs.org/)
+- **Node.js** v18 or higher - [nodejs.org](https://nodejs.org/)
 - **npm** v7 or higher (workspace support; ships with Node 16+)
 - A **MongoDB** instance (local or MongoDB Atlas)
 - **Razorpay** (and optionally PayPal) API credentials for payments
@@ -230,16 +230,16 @@ All routes are mounted under `/api`. Authenticated routes require a `Bearer` JWT
 
 ## Deployment
 
-### Frontend — Vercel
+### Frontend - Vercel
 
 The production frontend is live at: https://printease-client.vercel.app
 
 1. Import the repository into [Vercel](https://vercel.com).
 2. Set the **Root Directory** to `client`.
 3. Add the environment variables from `client/.env` in the Vercel project settings.
-4. Deploy — Vercel builds and serves the Vite/React app automatically.
+4. Deploy - Vercel builds and serves the Vite/React app automatically.
 
-### Backend — Node.js Hosting
+### Backend - Node.js Hosting
 
 The Express server can be deployed to any Node.js-compatible platform with persistent disk storage for uploads (e.g. Railway, Render, Fly.io). After deploying:
 
